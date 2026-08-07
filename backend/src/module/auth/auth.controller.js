@@ -62,3 +62,4 @@ export const login= async (req,res)=>{
     return errorResponse(res,error)
   }
 }
+
