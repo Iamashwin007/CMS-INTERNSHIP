@@ -148,3 +148,51 @@ await prisma.update({
     })
     return true;
   }
+
+  export const getCurrentUser = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, fullName: true, phoneNumber: true, role: true, isActive: true, lastLoginAt: true, lastLoginIP: true, createdAt: true, updatedAt: true },
+  });
+
+  if (!user) throw new Error(MESSAGES.USER_NOT_FOUND);
+  if (!user.isActive) throw new Error(MESSAGES.ACCOUNT_DEACTIVATED);
+  return user;
+};
+
+export const updateUserProfile = async (userId, updateData) => {
+  const { fullName, phoneNumber, newPassword } = updateData;
+  const data = {};
+  if (fullName) data.fullName = fullName;
+  if (phoneNumber !== undefined) data.phoneNumber = phoneNumber;
+  if (newPassword) data.password = await hashPassword(newPassword);
+
+  return await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: { id: true, email: true, fullName: true, phoneNumber: true, role: true, isActive: true, createdAt: true, updatedAt: true },
+  });
+};
+// / /Admin Functions
+export const getAllUsers = async (filters = {}) => {
+  const { role, isActive, search } = filters;
+  const where = {};
+  if (role) where.role = role;
+  if (isActive !== undefined) where.isActive = isActive;
+  if (search) where.OR = [{ email: { contains: search } }, { fullName: { contains: search } }];
+
+  return await prisma.user.findMany({
+    where,
+    select: { id: true, email: true, fullName: true, phoneNumber: true, role: true, isActive: true, lastLoginAt: true, createdAt: true, updatedAt: true },
+    orderBy: { createdAt: 'desc' },
+  });
+};
+
+export const getUserById = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, fullName: true, phoneNumber: true, role: true, isActive: true, lastLoginAt: true, lastLoginIP: true, createdAt: true, updatedAt: true },
+  });
+  if (!user) throw new Error(MESSAGES.USER_NOT_FOUND);
+  return user;
+};
