@@ -18,8 +18,8 @@ export const registerSchema=z.object({
 
 
 
-export consr loginSchema=z.object({
-  email:z.strin().trim().email("Invalid email address".  ),
-  password:z.string().min(8."pasword mut be at least same as we used in the register"),
+export const loginSchema=z.object({
+  email:z.strin().trim().email("Invalid email address"),
+  password:z.string().min(8,"pasword mut be at least same as we used in the register"),
   rememberMe:z.boolean().default(false),
 })
