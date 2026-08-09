@@ -1,28 +1,65 @@
-import { ZodError } from "zod"
-import { errorResponse, successResponse } from "../../utils/response.js"
-import { registerSchema } from "./auth.schema.js"
-import { regiserUser } from "./auth.service.js"
+import { ZodError } from "zod";
+import { errorResponse, successResponse } from "../../utils/response.js";
+import { registerSchema } from "./auth.schema.js";
+import { regiserUser } from "./auth.service.js";
+import { setRefreshTokenCookie } from "../../utils/cookie.js";
+import { MESSAGES } from "../../constans/messages.js";
+import { STATUS_CODES } from "../../constans/statusCodes.js";
+
+export const register = async (req, res) => {
+  try {
+    const data = registerSchema.parse(req.body);
+
+    const result = await regiserUser(data);
+
+    setRefreshTokenCookie(res, result.refreshToken);
+
+    return successResponse(
+      res,
+      MESSAGES.REGISTER_SUCCESS,
+      {
+        accessToken: result.accessToken,
+        user: result.newUser,
+      },
+      STATUS_CODES.CREATED
+    );
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return errorResponse(
+        res,
+        MESSAGES.VALIDATION_FAILED,
+        error.flatten(),
+        STATUS_CODES.BAD_REQUEST
+      );
+    }
+
+    return errorResponse(
+      res,
+      error.message,
+      null,
+      STATUS_CODES.BAD_REQUEST
+    );
+  }
+};
 
 
-export const register =async(req,res)=>{
-    try {
-         const data = registerSchema.parse(req.body)    // parse means to analyze a string of text and convert it into a data structure that the program can read and use
-   const user = await regiserUser(data)
+
+export const login= async (req,res)=>{
+  try{
+    const loginData= loginData.parse(req.body)
+    const result = await loginUser(loginData)
 
 
-   return successResponse(
-    res,"User register sucessfully",
-    user,
-    201
-   )
-        
-    } catch (error) {
-        if (error instanceof ZodError){
-            return errorResponse(
-                res,
-                "validation failed",
-                400,
+    // set refresh token in HTTp-only
+    setRefreshTokenCookie(res,result.accessToken)
+    // refrsh token removed from hte response body
+    delete result.refreshToken;
+    return successResponse(res,result,message.LOGIN_SUCCESS);
 
-            )
-        }
-         return errorResponse(res, error.message,400) }}
+
+  }
+  catch (error){
+    return errorResponse(res,error)
+  }
+}
+
