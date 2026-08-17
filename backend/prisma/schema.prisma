@@ -1,18 +1,10 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
-
 model User {
   id              String   @id @default(cuid())
   email           String   @unique
   password        String
   fullName        String
   phone           String?
+  avatar          String?  // Profile picture URL
   role            Role     @default(PATIENT)
   isActive        Boolean  @default(true)
   isEmailVerified Boolean  @default(false)
@@ -48,6 +40,7 @@ model Patient {
   zipCode           String?
   insuranceProvider String?
   insuranceNumber   String?
+  documents         Json?    // Array of uploaded document URLs
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -71,116 +64,11 @@ model Doctor {
   bio               String?
   rating            Float    @default(0)
   totalReviews      Int      @default(0)
+  certificates      Json?    // Array of uploaded certificate URLs
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   appointments Appointment[]
 
   @@map("doctors")
-}
-
-model Appointment {
-  id           String   @id @default(cuid())
-  patientId    String
-  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  doctorId     String
-  doctor       Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  date         DateTime
-  time         String
-  status       AppointmentStatus @default(SCHEDULED)
-  type         String?
-  notes        String?
-  symptoms     String[]
-  prescription String?
-  diagnosis    String?
-  followUpDate DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("appointments")
-}
-
-enum Role {
-  ADMIN
-  DOCTOR
-  PATIENT
-  RECEPTIONIST
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-}
-
-enum AppointmentStatus {
-  SCHEDULED
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  RESCHEDULED
-  NO_SHOW
-}
-
-model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userAgent String?
-  ipAddress String?
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  revoked   Boolean  @default(false)
-  revokedAt DateTime?
-
-  @@map("refresh_tokens")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token        String   @unique
-  userAgent    String?
-  ipAddress    String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  lastActivity DateTime @default(now())
-  isActive     Boolean  @default(true)
-
-  @@map("sessions")
-}
-
-model OTP {
-  id        String   @id @default(cuid())
-  email     String
-  otp       String
-  type      OTPType
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  isUsed    Boolean  @default(false)
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@map("otps")
-}
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action    String
-  resource  String
-  details   Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  @@map("audit_logs")
-}
-
-enum OTPType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
 }

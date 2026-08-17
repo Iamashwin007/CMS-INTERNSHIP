@@ -116,3 +116,4 @@ crup operation of patient
 
 
 
+ multer ko barema pathera aaunu 
