@@ -1,5 +1,4 @@
-
-
+import prisma from "../../config/database.js";
 // book appointment
 export const bookAppointment = async () =>{
     const {patientId,doctorId, date,time ,...data} = appointmentData;
@@ -273,7 +272,115 @@ export const getAllAppointments = async (
 
 
 // get appointment by id
+export const getAppointmentById = async (appointmentId) => {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    include: {
+      patient: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      },
+      doctor: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!appointment) {
+    throw new Error('Appointment not found');
+  }
+
+  return appointment;
+};
+
+// Update Appointment
+export const updateAppointment = async (appointmentId, updateData) => {
+  const existingAppointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+  });
+
+  if (!existingAppointment) 
+    throw new Error('Appointment not found');
+  if (existingAppointment.status === 'COMPLETED' || existingAppointment.status === 'CANCELLED') {
+    throw new Error(`Cannot update a ${existingAppointment.status.toLowerCase()} appointment`);
+  }
+
+  // Check slot availability if date/time changed
+  if (updateData.date || updateData.time) {
+    const newDate = updateData.date ? new Date(updateData.date) : existingAppointment.date;
+    const newTime = updateData.time || existingAppointment.time;
+
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        doctorId: existingAppointment.doctorId,
+        date: newDate,
+        time: newTime,
+        status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        NOT: { id: appointmentId },
+      },
+    });
+
+    if (conflict) throw new Error('This time slot is already booked');
+    updateData.date = newDate;
+    updateData.time = newTime;
+  }
+
+  return await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: updateData,
+    include: {
+      patient: { include: { user: { select: { fullName: true, email: true } } } },
+      doctor: { include: { user: { select: { fullName: true } } } },
+    },
+  });
+};
+
+// Cancel Appointment
+export const cancelAppointment = async (appointmentId, reason) => {
+  const existingAppointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+  });
+
+  if (!existingAppointment) 
+    throw new Error('Appointment not found');
+  if (existingAppointment.status === 'COMPLETED')
+     throw new Error('Cannot cancel a completed appointment');
+  if (existingAppointment.status === 'CANCELLED') 
+    throw new Error('Appointment is already cancelled');
+
+  return await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      status: 'CANCELLED',
+      notes: reason ? `${existingAppointment.notes || ''}\nCancellation reason: ${reason}`.trim() : existingAppointment.notes,
+    },
+    include: {
+      patient: { include: { user: { select: { fullName: true, email: true } } } },
+      doctor: { include: { user: { select: { fullName: true } } } },
+    },
+  });
+};
 
 
-// update 
-// cancel
+                
+
+
+
+
